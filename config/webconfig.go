@@ -32,6 +32,7 @@ func WebConfig(r *http.Request) (*HeplifyServer, error) {
 		webSetting.ESDiscovery = false
 	}
 	webSetting.LokiURL = r.FormValue("LokiURL")
+	webSetting.LokiOrgID = r.FormValue("LokiOrgID")
 	if webSetting.LokiBulk, err = strconv.Atoi(r.FormValue("LokiBulk")); err != nil {
 		return nil, err
 	}
@@ -52,7 +53,7 @@ func WebConfig(r *http.Request) (*HeplifyServer, error) {
 	lineprotoBufferStr := r.FormValue("LineprotoBuffer")
 	lineprotoBuffer, err := strconv.Atoi(lineprotoBufferStr)
 	if err != nil || lineprotoBuffer < 0 || lineprotoBuffer > maxLineprotoBuffer {
-	    return nil, fmt.Errorf("Invalid LineprotoBuffer value: must be between 0 and %d", maxLineprotoBuffer)
+		return nil, fmt.Errorf("Invalid LineprotoBuffer value: must be between 0 and %d", maxLineprotoBuffer)
 	}
 	webSetting.LineprotoBuffer = lineprotoBuffer
 	DBShema := r.FormValue("DBShema")
@@ -227,6 +228,10 @@ var WebForm = `
 		<div>
 			<label>LokiURL</label>
 			<input  type="text" name="LokiURL" placeholder="{{.LokiURL}}" value="{{.LokiURL}}">
+		</div>
+		<div>
+			<label>LokiOrgID</label>
+			<input  type="text" name="LokiOrgID" placeholder="{{.LokiOrgID}}" value="{{.LokiOrgID}}">
 		</div>
 		<div>
 			<label>LokiBulk</label>

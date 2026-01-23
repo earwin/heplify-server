@@ -45,6 +45,12 @@ type Loki struct {
 	entry
 }
 
+func (l *Loki) applyOrgIDHeader(req *http.Request) {
+	if config.Setting.LokiOrgID != "" {
+		req.Header.Set("X-Scope-OrgID", config.Setting.LokiOrgID)
+	}
+}
+
 func (l *Loki) setup() error {
 	l.BatchSize = config.Setting.LokiBulk * 1024
 	l.BatchWait = time.Duration(config.Setting.LokiTimer) * time.Second
@@ -66,9 +72,22 @@ func (l *Loki) setup() error {
 	q := u.Query()
 	u.RawQuery = q.Encode()
 
-	_, err = http.Get(u.String())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		return err
+	}
+	req = req.WithContext(ctx)
+	l.applyOrgIDHeader(req)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return fmt.Errorf("loki label check failed with HTTP status %s (%d)", resp.Status, resp.StatusCode)
 	}
 	return nil
 }
@@ -249,6 +268,7 @@ func (l *Loki) send(ctx context.Context, buf []byte) (int, error) {
 	}
 	req = req.WithContext(ctx)
 	req.Header.Set("Content-Type", contentType)
+	l.applyOrgIDHeader(req)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
